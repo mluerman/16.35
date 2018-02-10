@@ -118,7 +118,7 @@ class GroundVehicle:
             self.xdot = 10 * math.cos(theta)
             self.ydot = 10 * math.sin(theta)
             self.setPosition([self.pose[0], self.pose[1], theta])
-        assert 5.0 <= (self.xdot**2 + self.ydot**2)**2 <= 10.0
+        assert 5.0 <= (self.xdot**2 + self.ydot**2)**.5 <= 10.0
 
     def controlVehicle(self, c):
         """Updates vehicle velocity based on Control class instance"""
@@ -166,7 +166,7 @@ class GroundVehicle:
             self.xdot = self.s * math.cos(theta)
             self.ydot = self.s * math.sin(theta)
             # Start position update by determining the radius of circular motion of the vehicle, arclength/dtheta
-            radius = self.s * t / dtheta
+            radius = self.s * dt / dtheta
             # Use the law of cosines to determine chord length, c^2 = a^2 + b^2 - 2ab*cosC
             chord = math.sqrt(2 * radius**2 * (1 - math.cos(dtheta)))
             # Determine average theta from raw start and end values
