@@ -4,6 +4,7 @@
 
 import unittest
 import random
+import math
 from Control import Control
 
 random.seed(125)
