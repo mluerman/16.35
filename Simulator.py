@@ -37,6 +37,8 @@ class Simulator:
     def run(self):
         self.sec = 0
         self.msec = 0
+        delta_sec = 0  # Increment rate of seconds clock
+        delta_msec = 10  # Increment rate of milliseconds clock
 
         pose = [50, 10, 0]
         s = 10
@@ -47,9 +49,9 @@ class Simulator:
         while self.sec < 100:
             act = self.getControl(self.sec, self.msec)
             vehicle.controlVehicle(act)
-            vehicle.updateState(self.sec, self.msec)
+            vehicle.updateState(delta_sec, delta_msec)
 
-            self.msec += 10
+            self.msec += delta_msec
             # If millisecond counter is at or above 1000, increment second counter and reset millisecond counter
             if self.msec >= 1000:
                 self.sec += 1
