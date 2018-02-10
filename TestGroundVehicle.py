@@ -219,7 +219,7 @@ class TestGroundVehicle(unittest.TestCase):
         g = GroundVehicle(pose, s, w)
         new_pose = [100.1, 100.1, 3.2]
         g.setPosition(new_pose)
-        self.assertEqual(g.getPosition(), [100, 100, math.pi])
+        self.assertEqual(g.getPosition(), [100, 100, -2*math.pi+3.2])
 
     def testSetPosition_low(self):
         """Tests proper functioning of setPosition() method when the input values are too low"""
@@ -229,7 +229,7 @@ class TestGroundVehicle(unittest.TestCase):
         g = GroundVehicle(pose, s, w)
         new_pose = [-.1, -.1, -3.2]
         g.setPosition(new_pose)
-        self.assertEqual(g.getPosition(), [0, 0, -math.pi])
+        self.assertEqual(g.getPosition(), [0, 0, 2*math.pi-3.2])
 
 
 if __name__ == "__main__":
