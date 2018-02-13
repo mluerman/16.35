@@ -51,6 +51,13 @@ class TestControl(unittest.TestCase):
         c = Control(s, w)
         self.assertEqual(c.s, s)
 
+    def testInputS_wrongtype(self):
+        """Tests creation of a Control class instance with an invalid speed input"""
+        s = 'input test'
+        w = random.uniform(-math.pi/4, math.pi/4)
+        with self.assertRaises(TypeError):
+            c = Control(s, w)
+
     def testInputOmega_low(self):
         """Tests creation of Control instance with invalid omega parameter"""
         s = random.uniform(5, 10)
@@ -78,6 +85,13 @@ class TestControl(unittest.TestCase):
         w = math.pi/4
         c = Control(s, w)
         self.assertEqual(c.s, s)
+
+    def testInputOmega_wrongtype(self):
+        """Tests creation of Control instance with invalid omega parameter"""
+        s = random.uniform(5, 10)
+        w = 'test input'
+        with self.assertRaises(TypeError):
+            c = Control(s, w)
 
     def testGetSpeed(self):
         """Tests nominal functioning of getSpeed() method"""
