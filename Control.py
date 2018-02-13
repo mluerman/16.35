@@ -13,6 +13,10 @@ class Control:
     """
     def __init__(self, s, omega):
         """Initializes values for class if inputs are valid"""
+        if type(s) not in [int, float]:
+            raise TypeError("Speed input must be an integer or float")
+        if type(omega) not in [int, float]:
+            raise TypeError("Omega input must be an integer or float")
         if not 5 <= s <= 10:
             raise ValueError("Speed input must be in range [5, 10] in m/sec")
         if not -math.pi/4 <= omega <= math.pi/4:
