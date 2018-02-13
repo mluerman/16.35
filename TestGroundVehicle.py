@@ -6,6 +6,7 @@ import unittest
 import random
 import math
 from GroundVehicle import GroundVehicle
+from Control import Control
 
 random.seed(125)
 
@@ -201,6 +202,81 @@ class TestGroundVehicle(unittest.TestCase):
         g = GroundVehicle(pose, s, w)
         self.assertEqual(g.getVelocity(), [g.xdot, g.ydot, g.omega])
 
+    def testClampTheta_wrongtype(self):
+        """Tests that clamping function raises type error when invalid input is entered"""
+        pose = [random.uniform(0, 100), random.uniform(0, 100), random.uniform(-math.pi, math.pi)]
+        s = random.uniform(5, 10)
+        w = random.uniform(-math.pi/4, math.pi/4)
+        g = GroundVehicle(pose, s, w)
+        with self.assertRaises(TypeError):
+            g.clampTheta('invalid input test')
+
+    def testClampTheta_no_clamping(self):
+        """Tests clamping function when no clamping is needed"""
+        pose = [random.uniform(0, 100), random.uniform(0, 100), random.uniform(-math.pi, math.pi)]
+        s = random.uniform(5, 10)
+        w = random.uniform(-math.pi/4, math.pi/4)
+        g = GroundVehicle(pose, s, w)
+        new_theta = g.clampTheta(math.pi/8)
+        self.assertEqual(new_theta, math.pi/8)
+
+    def testClampTheta_clamp_high1(self):
+        """Tests clamping function when input is above the upper bound"""
+        pose = [random.uniform(0, 100), random.uniform(0, 100), random.uniform(-math.pi, math.pi)]
+        s = random.uniform(5, 10)
+        w = random.uniform(-math.pi/4, math.pi/4)
+        g = GroundVehicle(pose, s, w)
+        new_theta = g.clampTheta(3.2)
+        self.assertEqual(new_theta, math.pi)
+
+    def testClampTheta_clamp_high2(self):
+        """Tests clamping function when input is above the upper bound"""
+        pose = [random.uniform(0, 100), random.uniform(0, 100), random.uniform(-math.pi, math.pi)]
+        s = random.uniform(5, 10)
+        w = random.uniform(-math.pi/4, math.pi/4)
+        g = GroundVehicle(pose, s, w)
+        new_theta = g.clampTheta(10)
+        self.assertEqual(new_theta, 10 - math.pi*3)
+
+    def testClampTheta_clamp_low1(self):
+        """Tests clamping function when theta is below the lower bound"""
+        pose = [random.uniform(0, 100), random.uniform(0, 100), random.uniform(-math.pi, math.pi)]
+        s = random.uniform(5, 10)
+        w = random.uniform(-math.pi/4, math.pi/4)
+        g = GroundVehicle(pose, s, w)
+        new_theta = g.clampTheta(-3.2)
+        self.assertEqual(new_theta, -math.pi)
+
+    def testClampTheta_clamp_low2(self):
+        """Tests clamping function when theta is below the lower bound"""
+        pose = [random.uniform(0, 100), random.uniform(0, 100), random.uniform(-math.pi, math.pi)]
+        s = random.uniform(5, 10)
+        w = random.uniform(-math.pi/4, math.pi/4)
+        g = GroundVehicle(pose, s, w)
+        new_theta = g.clampTheta(-11.5)
+        self.assertEqual(new_theta, -11.5 + 3*math.pi)
+
+    def testClampTheta_clamp_edgehigh(self):
+        """Tests clamping function at upper boundary"""
+        pose = [random.uniform(0, 100), random.uniform(0, 100), random.uniform(-math.pi, math.pi)]
+        s = random.uniform(5, 10)
+        w = random.uniform(-math.pi/4, math.pi/4)
+        g = GroundVehicle(pose, s, w)
+        new_theta = g.clampTheta(math.pi)
+        self.assertEqual(new_theta, math.pi)
+
+    def testClampTheta_clamp_edgelow(self):
+        """Tests clamping function at lower boundary"""
+        pose = [random.uniform(0, 100), random.uniform(0, 100), random.uniform(-math.pi, math.pi)]
+        s = random.uniform(5, 10)
+        w = random.uniform(-math.pi/4, math.pi/4)
+        g = GroundVehicle(pose, s, w)
+        new_theta = g.clampTheta(-math.pi)
+        self.assertEqual(new_theta, -math.pi)
+
+
+
+
     def testSetPosition_nominal(self):
         """Tests nominal functioning of setPosition() method"""
         pose = [random.uniform(0, 100), random.uniform(0, 100), random.uniform(-math.pi, math.pi)]
@@ -230,6 +306,30 @@ class TestGroundVehicle(unittest.TestCase):
         new_pose = [-.1, -.1, -3.2]
         g.setPosition(new_pose)
         self.assertEqual(g.getPosition(), [0, 0, 2*math.pi-3.2])
+
+
+    def testControlVehicle_Invalid(self):
+        """Tests ControlVehicle method functionality with invalid Control parameters"""
+        pose = [random.uniform(0, 100), random.uniform(0, 100), random.uniform(-math.pi, math.pi)]
+        s = random.uniform(5, 10)
+        w = random.uniform(-math.pi/4, math.pi/4)
+        g = GroundVehicle(pose, s, w)
+        c = 'invalid input test'
+        with self.assertRaises(TypeError):
+            g.controlVehicle(c)
+
+    def testControlVehicle_Valid(self):
+        """Tests ControlVehicle method functionality with valid Control parameters"""
+        pose = [random.uniform(0, 100), random.uniform(0, 100), random.uniform(-math.pi, math.pi)]
+        s = random.uniform(5, 10)
+        w = random.uniform(-math.pi/4, math.pi/4)
+        g = GroundVehicle(pose, s, w)
+        new_s = random.uniform(5, 10)
+        new_omega = random.uniform(-math.pi/4, -math.pi/4)
+        c = Control(new_s, new_omega)
+        g.controlVehicle(c)
+        self.assertEqual(g.s, new_s)
+        self.assertEqual(g.getVelocity()[2], new_omega)
 
 
 if __name__ == "__main__":
