@@ -36,7 +36,7 @@ class Simulator:
             raise ValueError("Seconds parameter must be nonzero")
         if msec < 0:
             raise ValueError("Milliseconds parameter must be nonzero")
-        time = sec + (msec * 0.001)
+        time = round(sec + (msec * 0.001), 2)
         try:
             return self.control_dictionary[time]
         except:
@@ -62,11 +62,7 @@ class Simulator:
         small_radius = small_circumference / (2 * math.pi)
         # Determine turn time for an N-sided polygon
         turn_angle = 2*math.pi / self.n
-        print('turn angle')
-        print(turn_angle)
         turn_time = turn_angle / max_turn_rate
-        print('turn_time')
-        print(turn_time)
 
         # Determine drive time for straight segments of an N-sided polygon
         # Use the law of cosines to determine chord length, c^2 = a^2 + b^2 - 2ab*cosC
@@ -76,17 +72,13 @@ class Simulator:
         linear_displacement_half_turn = (small_chord * math.cos(turn_angle)) / 2
         straight_segment_length = big_chord - linear_displacement_half_turn
         straight_segment_time = straight_segment_length / max_speed
-        print('straight time')
-        print(straight_segment_time)
-        print('straight segment length')
-        print(straight_segment_length)
 
         time = 0
         while True:
-            self.control_dictionary[time] = Control(max_speed, 0)
-            time += round(straight_segment_time, 3)
-            self.control_dictionary[time] = Control(min_speed, -max_turn_rate)
-            time += round(turn_time, 3)
+            self.control_dictionary[round(time,2)] = Control(max_speed, 0)
+            time += straight_segment_time
+            self.control_dictionary[round(time,2)] = Control(min_speed, max_turn_rate)
+            time += turn_time
             if time >= 100:
                 self.ControlsSet = True
                 break
@@ -103,6 +95,7 @@ class Simulator:
         omega = 0
         vehicle = GroundVehicle(pose, s, omega)
         self.createControlSequence()
+        print(self.control_dictionary)
 
         while self.sec < 100:
             # Call getControl in order to determine if a new control should be applied to the vehicle
@@ -116,7 +109,7 @@ class Simulator:
             p_x = format(vehicle.getPosition()[0], '.2f')
             p_y = format(vehicle.getPosition()[1], '.2f')
             p_theta = format(math.degrees(vehicle.getPosition()[2]), '.1f')
-            # print(str(p_time) + " " + str(p_x) + " " + str(p_y) + " " + str(p_theta))
+            print(str(p_time) + " " + str(p_x) + " " + str(p_y) + " " + str(p_theta))
 
             # Increment the simulator clock
             self.msec += delta_msec
@@ -127,5 +120,5 @@ class Simulator:
 
 if __name__ == '__main__':
     s = Simulator()
-    s.setNumSides(3)
+    s.setNumSides(10)
     s.run()
