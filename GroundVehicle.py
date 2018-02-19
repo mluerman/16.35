@@ -114,48 +114,39 @@ class GroundVehicle:
         self.xdot = vel[0]
         self.ydot = vel[1]
         self.omega = vel[2]
-        # If velocity constraint is exceeded, clamp values
-        if (self.xdot**2 + self.ydot**2)**.5 < 5:
-            # Determine new theta
-            if self.xdot == 0 and self.ydot == 0:
-                theta = self.getPosition()[2]
-            else:
-                if self.xdot == 0 and self.ydot > 0:
-                    theta = math.pi / 2
-                elif self.xdot == 0 and self.ydot < 0:
-                    theta = -math.pi / 2
-                elif self.ydot == 0 and self.xdot > 0:
-                    theta = 0
-                elif self.ydot == 0 and self.xdot < 0:
-                    theta = math.pi
-                else:
-                    theta = math.atan(self.ydot/self.xdot)
-            # Calculate new xdot and ydot and set theta
-            self.xdot = 5 * math.cos(theta)
-            self.ydot = 5 * math.sin(theta)
-            self.setPosition([self.pose[0], self.pose[1], theta])
-        elif (self.xdot ** 2 + self.ydot ** 2)**.5 > 10:
-            # Determine new theta
-            if self.xdot == 0 and self.ydot > 0:
-                theta = math.pi / 2
-            elif self.xdot == 0 and self.ydot < 0:
-                theta = -math.pi / 2
-            elif self.ydot == 0 and self.xdot > 0:
-                theta = 0
-            elif self.ydot == 0 and self.xdot < 0:
-                theta = math.pi
-            else:
-                theta = math.atan(self.ydot / self.xdot)
-            # Calculate new xdot and ydot and set theta
-            self.xdot = 10 * math.cos(theta)
-            self.ydot = 10 * math.sin(theta)
-            self.setPosition([self.pose[0], self.pose[1], theta])
+
+        if self.xdot == 0 and self.ydot == 0:
+            theta = self.getPosition()[2]
+        elif self.xdot == 0 and self.ydot > 0:
+            theta = math.pi / 2
+        elif self.xdot == 0 and self.ydot < 0:
+            theta = -math.pi / 2
+        elif self.xdot > 0 and self.ydot == 0:
+            theta = 0
+        elif self.xdot < 0 and self.ydot == 0:
+            theta = math.pi
+        elif self.xdot > 0:
+            theta = math.atan(self.ydot / abs(self.xdot))
+        elif self.xdot < 0 and self.ydot > 0:
+            theta = math.pi - math.atan(self.ydot / abs(self.xdot))
         else:
-            pass
+            theta = -math.pi - math.atan(self.ydot / abs(self.xdot))
+
+        self.setPosition([self.pose[0], self.pose[1], theta])
         self.s = (self.xdot**2 + self.ydot**2)**.5
+
+        if self.s < 5:
+            self.s = 5
+            self.xdot = self.s * math.cos(theta)
+            self.ydot = self.s * math.sin(theta)
+        elif self.s > 10:
+            self.s = 10
+            self.xdot = self.s * math.cos(theta)
+            self.ydot = self.s * math.sin(theta)
+
         # Allow epsilon tolerance for small rounding errors in speed calculation
         eps = .000000000000001
-        assert 5.0 - eps <= self.s <= 10.0 + eps, "speed is not in bounds"
+        assert 5.0 - eps <= (self.xdot**2 + self.ydot**2)**.5 <= 10.0 + eps, "speed is not in bounds"
 
     def controlVehicle(self, c):
         """Updates vehicle velocity based on Control class instance"""
@@ -195,9 +186,9 @@ class GroundVehicle:
             self.ydot = self.s * math.sin(theta)
             # Update position for the straight line motion case
             distance = self.s * dt
-            self.pose[0] = self.getPosition()[0] + (distance * math.cos(theta))
-            self.pose[1] = self.getPosition()[1] + (distance * math.sin(theta))
-            self.pose[2] = self.clampTheta(theta)
+            new_x = self.getPosition()[0] + (distance * math.cos(theta))
+            new_y = self.getPosition()[1] + (distance * math.sin(theta))
+            self.setPosition([new_x, new_y, theta])
         else:
             theta = self.pose[2] + dtheta
             # Update velocity values, assuming new theta and constant speed
@@ -211,7 +202,6 @@ class GroundVehicle:
             avg_theta = (self.getPosition()[2] + theta) / 2.0
             # Update position as though the vehicle moved directly along the chord line, and then update theta based on
             # the previously calculated dtheta from omega and the amount of elapsed time
-            self.pose[0] = self.getPosition()[0] + (chord * math.cos(avg_theta))
-            self.pose[1] = self.getPosition()[1] + (chord * math.sin(avg_theta))
-            self.pose[2] = self.clampTheta(theta)
-
+            new_x = self.getPosition()[0] + (chord * math.cos(avg_theta))
+            new_y = self.getPosition()[1] + (chord * math.sin(avg_theta))
+            self.setPosition([new_x, new_y, theta])
