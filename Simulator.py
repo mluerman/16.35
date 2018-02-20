@@ -16,7 +16,8 @@ class Simulator:
         self.sec = 0
         self.msec = 0
         self.n = 5
-        self.ControlsSet = False
+        self.time_limit = 100
+        self.circle_radius = 25
         self.control_dictionary = {}
 
     def getCurrentSec(self):
@@ -28,6 +29,7 @@ class Simulator:
         return self.msec
 
     def getControl(self, sec, msec):
+        """Returns new vehicle control if one exists for the current time input"""
         if type(sec) not in [int, float]:
             raise TypeError("Seconds parameter must be an integer or float")
         if type(msec) not in [int, float]:
@@ -37,6 +39,7 @@ class Simulator:
         if msec < 0:
             raise ValueError("Milliseconds parameter must be nonzero")
         time = round(sec + (msec * 0.001), 2)
+        # Check if current time is a dictionary key, do nothing if not
         try:
             return self.control_dictionary[time]
         except:
@@ -55,7 +58,7 @@ class Simulator:
         max_turn_rate = math.pi/4
         max_speed = 10
         min_speed = 5
-        circle_radius = 25  # meters, predetermined constraint
+        self.circle_radius = 25  # meters, predetermined constraint
 
         # Determine turn radius for vehicle at max turn rate and minimum speed
         small_circumference = min_speed * 2 * math.pi / max_turn_rate  # C = s * t = s * 2pi / omega
@@ -66,20 +69,31 @@ class Simulator:
 
         # Determine drive time for straight segments of an N-sided polygon
         # Use the law of cosines to determine chord length, c^2 = a^2 + b^2 - 2ab*cosC
-        big_chord = math.sqrt(2 * circle_radius ** 2 * (1 - math.cos(turn_angle)))
+        big_chord = math.sqrt(2 * (self.circle_radius ** 2) * (1 - math.cos(turn_angle/2.0)))
         # Use the law of cosines to determine chord length, c^2 = a^2 + b^2 - 2ab*cosC
-        small_chord = math.sqrt(2 * small_radius ** 2 * (1 - math.cos(turn_angle)))
-        linear_displacement_half_turn = (small_chord * math.cos(turn_angle)) / 2
-        straight_segment_length = big_chord - linear_displacement_half_turn
+        small_chord = math.sqrt(2 * (small_radius ** 2) * (1 - math.cos(turn_angle/2.0)))
+        # Determine straight segment length, to keep motion within inscribing circle, making it necessary to
+        # consider linear displacement during turns (use one full turn since there is a half turn at each end)
+        linear_displacement_turn = (small_chord * math.cos(turn_angle/2.0))
+        # linear_displacement_turn = (small_radius * (1 - math.cos(turn_angle / 2.0)))
+        straight_segment_length = big_chord*2 - linear_displacement_turn*2
         straight_segment_time = straight_segment_length / max_speed
 
+        # Get starting positions for ground vehicle for a polygon inscribed by a circle centered at (50, 50)
+        self.start_x = 50 - (straight_segment_length / 2.0)
+        self.start_y = 50 - (self.circle_radius * math.cos((turn_angle)/2.0)) - (small_radius * (1 - math.cos(turn_angle / 2.0)))
+
+        # Create control dictionary, alternating linear and curved segments spaced by previously determined time intervals
         time = 0
         while True:
+            # Add a straight line segment control (linear motion at max speed)
             self.control_dictionary[round(time,2)] = Control(max_speed, 0)
             time += straight_segment_time
+            # Add a turn segment control (max turn rate at slowest speed)
             self.control_dictionary[round(time,2)] = Control(min_speed, max_turn_rate)
             time += turn_time
-            if time >= 100:
+            # Finish if controls for entire simulation have been set, otherwise loop
+            if time >= self.time_limit:
                 self.ControlsSet = True
                 break
 
@@ -89,26 +103,24 @@ class Simulator:
         delta_sec = 0  # Increment rate of seconds clock
         delta_msec = 10  # Increment rate of milliseconds clock
 
-        # Initialize GroundVehicle instance with fixed starting inputs
-        pose = [35, 20, 0]
-        s = 5
-        omega = 0
-        vehicle = GroundVehicle(pose, s, omega)
+        # Create control sequence dictionary
         self.createControlSequence()
-        print(self.control_dictionary)
 
-        while self.sec < 100:
+        # Initialize GroundVehicle instance with starting positions determined in createControlSequence
+        self.vehicle = GroundVehicle([self.start_x, self.start_y, 0], 10, 0)
+
+        while self.sec + self.msec*.001 - .001 < self.time_limit:
             # Call getControl in order to determine if a new control should be applied to the vehicle
             new_control = self.getControl(self.sec, self.msec)
             if new_control:
-                vehicle.controlVehicle(new_control)
-            vehicle.updateState(delta_sec, delta_msec)
+                self.vehicle.controlVehicle(new_control)
+            self.vehicle.updateState(delta_sec, delta_msec)
 
             # Print the simulator time, x and y position of GroundVehicle, and GroundVehicle orientation in degrees
             p_time = format(self.sec + (self.msec * 0.001), '.2f')
-            p_x = format(vehicle.getPosition()[0], '.2f')
-            p_y = format(vehicle.getPosition()[1], '.2f')
-            p_theta = format(math.degrees(vehicle.getPosition()[2]), '.1f')
+            p_x = format(self.vehicle.getPosition()[0], '.2f')
+            p_y = format(self.vehicle.getPosition()[1], '.2f')
+            p_theta = format(math.degrees(self.vehicle.getPosition()[2]), '.1f')
             print(str(p_time) + " " + str(p_x) + " " + str(p_y) + " " + str(p_theta))
 
             # Increment the simulator clock
@@ -120,5 +132,5 @@ class Simulator:
 
 if __name__ == '__main__':
     s = Simulator()
-    s.setNumSides(10)
+    s.setNumSides(5)
     s.run()
