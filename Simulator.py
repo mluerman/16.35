@@ -71,8 +71,6 @@ class Simulator:
         # Determine drive time for straight segments of an N-sided polygon
         # Use the law of cosines to determine chord length, c^2 = a^2 + b^2 - 2ab*cosC
         big_chord = math.sqrt(2 * (self.circle_radius ** 2) * (1 - math.cos(turn_angle)))
-        # Use the law of cosines to determine chord length, c^2 = a^2 + b^2 - 2ab*cosC
-        small_chord = math.sqrt(2 * (small_radius ** 2) * (1 - math.cos(turn_angle)))
         # Determine straight segment length, to keep motion within inscribing circle, making it necessary to
         # consider linear displacement during turns (use one full turn since there is a half turn at each end)
         linear_displacement_turn = small_radius * math.sin(turn_angle/2.0)
