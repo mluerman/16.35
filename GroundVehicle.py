@@ -9,12 +9,11 @@ from CustomExceptions import *
 
 class GroundVehicle:
     """
-    Constraints:
-    0 <= x <= 100
-    0 <= y <= 100
-    -pi <= theta <= pi
-    5 <= s <= 10
-    -pi/4 <= omega <= pi/4
+    Creates a ground vehicle capable of possessing 2-dimensional position and motion. Position and velocity variables
+    can be updated, and vehicle dynamics and position can be updated based on velocity and time elapsed.
+    Position constraints: 0 <= x <= 100, 0 <= y <= 100, -pi <= theta <= pi
+    Speed constraint: 5 <= s <= 10
+    Rotational velocity constraint: -pi/4 <= omega <= pi/4
     """
     def __init__(self, pose, s, omega):
         """Initialization of ground vehicle, invalid parameters result in ValueError"""
@@ -44,7 +43,6 @@ class GroundVehicle:
         self.xdot = self.s * math.cos(self.pose[2])
         self.ydot = self.s * math.sin(self.pose[2])
         self.setVelocity([self.xdot, self.ydot, self.omega])
-
         # Check that velocity meets the speed constraint
         assert 5.0 <= (self.xdot**2 + self.ydot**2)**.5 <= 10.0
 
@@ -60,8 +58,10 @@ class GroundVehicle:
         """Determine correct value of theta based on its position on a unit circle"""
         if type(theta) not in [int, float]:
             raise TypeError("Theta parameter must be an integer or float")
+        # Return in range theta
         if -math.pi <= theta <= math.pi:
             return theta
+        # Otherwise, find theta mod 2 pi and manipulate in as needed to maintain position on unit circle
         elif theta > math.pi:
             mod_t = theta % (math.pi * 2)
             if mod_t <= math.pi:
@@ -114,37 +114,45 @@ class GroundVehicle:
         self.xdot = vel[0]
         self.ydot = vel[1]
         self.omega = vel[2]
-
-        if self.xdot == 0 and self.ydot == 0:
-            theta = self.getPosition()[2]
-        elif self.xdot == 0 and self.ydot > 0:
-            theta = math.pi / 2
-        elif self.xdot == 0 and self.ydot < 0:
-            theta = -math.pi / 2
-        elif self.xdot > 0 and self.ydot == 0:
-            theta = 0
-        elif self.xdot < 0 and self.ydot == 0:
-            theta = math.pi
-        elif self.xdot > 0:
-            theta = math.atan(self.ydot / abs(self.xdot))
-        elif self.xdot < 0 and self.ydot > 0:
-            theta = math.pi - math.atan(self.ydot / abs(self.xdot))
-        else:
-            theta = -math.pi - math.atan(self.ydot / abs(self.xdot))
-
-        self.setPosition([self.pose[0], self.pose[1], theta])
         self.s = (self.xdot**2 + self.ydot**2)**.5
 
+        # Determine new theta based on new velocity input
+        # If zero velocity, use current orientation
+        if self.xdot == 0 and self.ydot == 0:
+            theta = self.getPosition()[2]
+        # Positive vertical motion
+        elif self.xdot == 0 and self.ydot > 0:
+            theta = math.pi / 2
+        # Negative vertical motion
+        elif self.xdot == 0 and self.ydot < 0:
+            theta = -math.pi / 2
+        # Positive horizontal motion
+        elif self.xdot > 0 and self.ydot == 0:
+            theta = 0
+        # Negative horizontal motion
+        elif self.xdot < 0 and self.ydot == 0:
+            theta = math.pi
+        # All other motion in the positive x direction
+        elif self.xdot > 0:
+            theta = math.atan(self.ydot / abs(self.xdot))
+        # All other motion in the negative x direction
+        else:
+            theta = math.pi - math.atan(self.ydot / abs(self.xdot))
+        # Set vehicle position (handles theta clamping as well)
+        self.setPosition([self.pose[0], self.pose[1], theta])
+
+        # If below speed bound, recalculate xdot and ydot for a speed of 5 m/s
         if self.s < 5:
             self.s = 5
             self.xdot = self.s * math.cos(theta)
             self.ydot = self.s * math.sin(theta)
+        # If above speed bound, recalculate xdot and ydot for a speed of 10 m/s
         elif self.s > 10:
             self.s = 10
             self.xdot = self.s * math.cos(theta)
             self.ydot = self.s * math.sin(theta)
 
-        # Allow epsilon tolerance for small rounding errors in speed calculation
+        # Allow epsilon tolerance for small rounding errors in speed calculation, check new velocity is valid
         eps = .000000000000001
         assert 5.0 - eps <= (self.xdot**2 + self.ydot**2)**.5 <= 10.0 + eps, "speed is not in bounds"
 
@@ -169,31 +177,29 @@ class GroundVehicle:
             raise ValueError("Seconds parameter must be nonzero")
         if msec < 0:
             raise ValueError("Milliseconds parameter must be nonzero")
+
         dt = sec + (msec * 0.001)
         # Do not proceed further if no time has elapsed
         if dt == 0:
             return
         # Determine current orientation of the vehicle
         dtheta = self.omega * dt
+        theta = self.pose[2] + dtheta
+        # Update velocity values in case speed has changed
+        self.xdot = self.s * math.cos(theta)
+        self.ydot = self.s * math.sin(theta)
+
         # Exception block just in case, but omega constraints and small time steps being used should keep the vehicle
         # far from exceeding this limit. Might help catch any egregious delta_t bugs
         if dtheta > math.pi:
             raise InvalidDynamicsInput("Model does not tolerate more than 180 degree change in heading per time step")
         elif dtheta == 0:
-            theta = self.pose[2]
-            # Update velocity values in case speed has changed
-            self.xdot = self.s * math.cos(theta)
-            self.ydot = self.s * math.sin(theta)
             # Update position for the straight line motion case
             distance = self.s * dt
             new_x = self.getPosition()[0] + (distance * math.cos(theta))
             new_y = self.getPosition()[1] + (distance * math.sin(theta))
             self.setPosition([new_x, new_y, theta])
         else:
-            theta = self.pose[2] + dtheta
-            # Update velocity values, assuming new theta and constant speed
-            self.xdot = self.s * math.cos(theta)
-            self.ydot = self.s * math.sin(theta)
             # Start position update by determining the radius of circular motion of the vehicle, arclength/dtheta
             radius = self.s * dt / dtheta
             # Use the law of cosines to determine chord length, c^2 = a^2 + b^2 - 2ab*cosC
