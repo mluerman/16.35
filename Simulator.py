@@ -9,7 +9,9 @@ import math
 
 class Simulator:
     """
-
+    Runs a simulation of the motion of a ground vehicle traveling along an n-sided polygon circumscribed by a
+    circle of radius 25 meters. Updates in increments of 10 milliseconds and the simulation ends after 100 seconds
+    of simulated time has elapsed.
     """
     def __init__(self):
         """Initialize simulator clock, set to zero until run() is called"""
@@ -58,7 +60,6 @@ class Simulator:
         max_turn_rate = math.pi/4
         max_speed = 10
         min_speed = 5
-        self.circle_radius = 25  # meters, predetermined constraint
 
         # Determine turn radius for vehicle at max turn rate and minimum speed
         small_circumference = min_speed * 2 * math.pi / max_turn_rate  # C = s * t = s * 2pi / omega
@@ -69,14 +70,13 @@ class Simulator:
 
         # Determine drive time for straight segments of an N-sided polygon
         # Use the law of cosines to determine chord length, c^2 = a^2 + b^2 - 2ab*cosC
-        big_chord = math.sqrt(2 * (self.circle_radius ** 2) * (1 - math.cos(turn_angle/2.0)))
+        big_chord = math.sqrt(2 * (self.circle_radius ** 2) * (1 - math.cos(turn_angle)))
         # Use the law of cosines to determine chord length, c^2 = a^2 + b^2 - 2ab*cosC
-        small_chord = math.sqrt(2 * (small_radius ** 2) * (1 - math.cos(turn_angle/2.0)))
+        small_chord = math.sqrt(2 * (small_radius ** 2) * (1 - math.cos(turn_angle)))
         # Determine straight segment length, to keep motion within inscribing circle, making it necessary to
         # consider linear displacement during turns (use one full turn since there is a half turn at each end)
-        linear_displacement_turn = (small_chord * math.cos(turn_angle/2.0))
-        # linear_displacement_turn = (small_radius * (1 - math.cos(turn_angle / 2.0)))
-        straight_segment_length = big_chord*2 - linear_displacement_turn*2
+        linear_displacement_turn = small_radius * math.sin(turn_angle/2.0)
+        straight_segment_length = big_chord - linear_displacement_turn*2
         straight_segment_time = straight_segment_length / max_speed
 
         # Get starting positions for ground vehicle for a polygon inscribed by a circle centered at (50, 50)
@@ -132,5 +132,5 @@ class Simulator:
 
 if __name__ == '__main__':
     s = Simulator()
-    s.setNumSides(5)
+    s.setNumSides(10)
     s.run()
